@@ -9,26 +9,46 @@ document.addEventListener('DOMContentLoaded', function() {
   const viewDetailsButton = document.getElementById('viewDetails');
   const timeChart = document.getElementById('timeChart');
 
+  // Helper to get today's date string
+  function getToday() {
+    return new Date().toISOString().split('T')[0];
+  }
+
+  // Define colors for pie chart slices
+  const pieChartColors = [
+    '#4CAF50', // Green
+    '#2196F3', // Blue
+    '#FFC107', // Amber
+    '#E91E63', // Pink
+    '#9C27B0', // Purple
+    '#00BCD4', // Cyan
+    '#FF5722', // Deep Orange
+    '#795548', // Brown
+    '#607D8B', // Blue Grey
+    '#FF9800'  // Orange
+  ];
+
   // Initialize Chart.js
   const ctx = timeChart.getContext('2d');
   let chart = new Chart(ctx, {
-    type: 'bar',
+    type: 'pie',
     data: {
       labels: [],
       datasets: [{
-        label: 'Time Spent (minutes)',
+        label: 'Time Spent (seconds)',
         data: [],
-        backgroundColor: '#4285f4'
+        backgroundColor: pieChartColors
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      scales: {
-        y: {
-          beginAtZero: true
-        }
-      }
+      // Scales are not typically used for pie charts
+      // scales: {
+      //   y: {
+      //     beginAtZero: true
+      //   }
+      // }
     }
   });
 
@@ -41,7 +61,8 @@ document.addEventListener('DOMContentLoaded', function() {
     updateStats(result);
     
     // Update chart
-    updateChart(result.dailyStats);
+    const today = getToday();
+    updateChart(result.dailyStats && result.dailyStats[today] ? result.dailyStats[today] : {});
   });
 
   // Handle tracking toggle
@@ -81,10 +102,19 @@ document.addEventListener('DOMContentLoaded', function() {
   function updateStats(data) {
     // Update total time
     if (data.dailyStats) {
-      const totalMinutes = Object.values(data.dailyStats).reduce((sum, time) => sum + time, 0);
-      const hours = Math.floor(totalMinutes / 60);
-      const minutes = totalMinutes % 60;
-      totalTimeElement.textContent = `${hours}h ${minutes}m`;
+      const today = getToday();
+      const todayStats = data.dailyStats[today] || {};
+      const totalSeconds = Object.values(todayStats).reduce((sum, time) => sum + time, 0);
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      // const seconds = totalSeconds % 60; // Optionally, display seconds too
+      console.log("[Popup] Calculating Total Time:", 
+                  "Raw todayStats (seconds):", JSON.stringify(todayStats),
+                  "Total calculated seconds:", totalSeconds, 
+                  "Hours:", hours, 
+                  "Minutes:", minutes);
+      // totalTimeElement.textContent = `${hours}h ${minutes}m`;
+      totalTimeElement.textContent = `${totalSeconds} seconds`; // TEMPORARY: Display raw seconds
     }
 
     // Update tab switches
@@ -99,10 +129,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!dailyStats) return;
 
     const labels = Object.keys(dailyStats);
-    const data = Object.values(dailyStats);
+    const dataValues = Object.values(dailyStats); // Renamed to avoid conflict
 
     chart.data.labels = labels;
-    chart.data.datasets[0].data = data;
+    chart.data.datasets[0].data = dataValues; // Use renamed variable
     chart.update();
   }
 
@@ -110,7 +140,9 @@ document.addEventListener('DOMContentLoaded', function() {
   chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
     if (message.action === 'updateStats') {
       updateStats(message.data);
-      updateChart(message.data.dailyStats);
+      const today = getToday();
+      // Ensure message.data.dailyStats and message.data.dailyStats[today] exist
+      updateChart(message.data.dailyStats && message.data.dailyStats[today] ? message.data.dailyStats[today] : {});
     }
   });
 

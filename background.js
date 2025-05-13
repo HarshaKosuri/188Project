@@ -50,27 +50,49 @@ chrome.tabs.onActivated.addListener(() => {
   });
 });
 
-// Track time spent per domain (every minute)
+// Track time spent per domain (every 10 seconds)
 setInterval(() => {
+  console.log("[Tracker] Interval triggered.");
   chrome.storage.local.get(['isTracking', 'dailyStats'], (result) => {
+    console.log("[Tracker] isTracking:", result.isTracking);
     if (result.isTracking === false) return;
+
     chrome.tabs.query({active: true, lastFocusedWindow: true}, (tabs) => {
-      if (!tabs[0] || !tabs[0].url) return;
+      if (!tabs[0] || !tabs[0].url) {
+        console.log("[Tracker] No active tab or URL found.");
+        return;
+      }
+
+      // Prevent tracking for chrome:// and chrome-extension:// URLs
+      if (tabs[0].url.startsWith('chrome://') || tabs[0].url.startsWith('chrome-extension://')) {
+        console.log("[Tracker] Ignoring internal URL:", tabs[0].url);
+        return;
+      }
+
+      console.log("[Tracker] Active tab URL:", tabs[0].url);
+
       let url;
       try {
         url = new URL(tabs[0].url);
-      } catch {
+      } catch (e) {
+        console.error("[Tracker] Invalid URL:", tabs[0].url, e);
         return;
       }
+
       const domain = url.hostname;
       const today = getToday();
       const dailyStats = result.dailyStats || {};
       if (!dailyStats[today]) dailyStats[today] = {};
-      dailyStats[today][domain] = (dailyStats[today][domain] || 0) + 1; // +1 minute
-      chrome.storage.local.set({ dailyStats }, broadcastStats);
+      dailyStats[today][domain] = (dailyStats[today][domain] || 0) + 10;
+      console.log("[Tracker] Updating domain:", domain, "New time (seconds):", dailyStats[today][domain]);
+
+      chrome.storage.local.set({ dailyStats }, () => {
+        console.log("[Tracker] dailyStats saved to storage.");
+        broadcastStats();
+      });
     });
   });
-}, 60000);
+}, 10000);
 
 // Broadcast stats to popup
 function broadcastStats() {
@@ -82,31 +104,15 @@ function broadcastStats() {
         tabSwitches: result.tabSwitches,
         activeTabs: result.activeTabs
       }
+    }).catch(error => {
+      // Optional: Log a less intrusive message or do nothing
+      // console.log("Popup not open to receive stats update.");
     });
   });
 }
 
 // On extension startup, update active tabs
 updateActiveTabs();
-
-// Listen for installation
-chrome.runtime.onInstalled.addListener(function(details) {
-  if (details.reason === "install") {
-    // Initialize storage with default values on install
-    chrome.storage.sync.set({
-      lastAction: 'installed',
-      timestamp: Date.now(),
-      settings: {
-        featureEnabled: true,
-        notificationsEnabled: true
-      }
-    }, function() {
-      console.log("Extension installed and storage initialized");
-    });
-  } else if (details.reason === "update") {
-    console.log("Extension updated from version " + details.previousVersion);
-  }
-});
 
 // Listen for messages from popup or content scripts
 chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
