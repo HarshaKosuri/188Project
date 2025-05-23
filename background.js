@@ -210,11 +210,11 @@ async function checkIfOnTask(goal, newUrl) {
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": "Bearer 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",
+        "Authorization": "Bearer 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",
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "mistralai/mistral-7b-instruct:free",
+        model: "google/gemini-2.0-flash-001",
         messages: [{ role: "user", content: prompt }]
       })
     });
