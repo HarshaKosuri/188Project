@@ -1,5 +1,4 @@
 // Manifest V3 background service worker for Productivity Tracker
-let lastActiveUrl = null;
 
 // Helper to get today's date string
 function getToday() {
@@ -12,7 +11,17 @@ chrome.runtime.onInstalled.addListener(() => {
     isTracking: true,
     dailyStats: {},
     tabSwitches: 0,
-    activeTabs: 0
+    activeTabs: 0,
+    currentGoal: null
+  });
+
+  // Send notif to set tasks (chrome doesnt allow automatic popoup opening)
+  chrome.notifications.create({
+    type: 'basic',
+    iconUrl: 'images/happy_bee.png',
+    title: 'Welcome to Beezy!',
+    message: 'Click the Beezy icon to set your goal and start tracking your session.',
+    priority: 2
   });
 });
 
@@ -45,56 +54,65 @@ chrome.tabs.onRemoved.addListener(() => {
 // Add a cooldown timer
 let lastNotificationTime = 0;
 const notificationCooldown = 10000; // in milliseconds (10 seconds)
+let lastActiveUrl = null;
 
 chrome.tabs.onActivated.addListener((activeInfo) => {
-  console.log("[Tracker] Tab activated");
-
-  // Get the current (new) active tab
   chrome.tabs.get(activeInfo.tabId, (tab) => {
-    const now = Date.now();
-
-    // Skip if tab has no URL
-    if (!tab || !tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
-      console.log("[Tracker] Ignoring tab with invalid or internal URL");
+    if (!tab || !tab.url || tab.url.startsWith("chrome://") || tab.url.startsWith("chrome-extension://")) {
       return;
     }
 
-    // Show notification if allowed by cooldown
-    chrome.storage.local.get(['isTracking', 'tabSwitches'], (result) => {
-      console.log("[Tracker] isTracking:", result.isTracking);
-      if (result.isTracking !== false) {
-        const newSwitches = (result.tabSwitches || 0) + 1;
-        chrome.storage.local.set({ tabSwitches: newSwitches }, broadcastStats);
+    const newUrl = tab.url;
+    const now = Date.now();
 
-        if (now - lastNotificationTime > notificationCooldown && lastActiveUrl) {
-          lastNotificationTime = now;
+    // Always update tab switch count
+    chrome.storage.local.get(['isTracking', 'tabSwitches', 'currentGoal'], async (result) => {
+      const isTracking = result.isTracking !== false;
+      const goal = result.currentGoal;
 
-          let domain;
-          try {
-            domain = new URL(lastActiveUrl).hostname;
-          } catch (e) {
-            domain = 'your last site';
-          }
+      if (!isTracking) return;
 
-          const message = `Did you finish what you were doing on ${domain}?`;
+      // Update tab switch count
+      const newSwitches = (result.tabSwitches || 0) + 1;
+      chrome.storage.local.set({ tabSwitches: newSwitches }, broadcastStats);
 
-          console.log("[Tracker] Creating notification");
-          chrome.notifications.create({
-            type: 'basic',
-            iconUrl: 'images/confused_bee.png', // Ensure this exists
-            title: 'Beezy',
-            message,
-            priority: 2,
-            requireInteraction: true
-          });
-        }
+      // Update active tab count too
+      updateActiveTabs();
 
-        // Update last active tab URL after processing
-        lastActiveUrl = tab.url;
+      // Skip LLM if not enough time has passed or no goal set
+      if (!goal || now - lastNotificationTime < notificationCooldown || !lastActiveUrl) {
+        lastActiveUrl = newUrl;
+        return;
       }
+
+      const response = await checkIfOnTask(goal, newUrl);
+      console.log("[LLM Response]", response);
+
+      if (response && response.toLowerCase().includes("no")) {
+        lastNotificationTime = now;
+
+        const reminder = await rewriteGoalAsReminder(goal);
+        const domain = (new URL(newUrl).hostname || "this site").replace("www.", "");
+
+        const message = reminder 
+          ? `${reminder} ${domain} might be a distraction.` 
+          : `Stay focused — ${domain} might not be on track.`;
+
+        chrome.notifications.create({
+          type: 'basic',
+          iconUrl: "images/confused_bee.png",
+          title: "Off Track?",
+          message,
+          priority: 2,
+          requireInteraction: true
+        });
+      }
+
+      lastActiveUrl = newUrl;
     });
   });
 });
+
 
 
 
@@ -176,3 +194,73 @@ chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
     return true;
   }
 }); 
+
+// LLM Prompt to Check if on Task
+async function checkIfOnTask(goal, newUrl) {
+  const prompt = `
+    I'm trying to stay focused and productive.
+
+    My current task is: "${goal}"
+    I just opened this URL: "${newUrl}"
+
+    Would a reasonable person consider this site helpful for working on that task? Reply only with "yes" or "no".
+    `;
+
+  try {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer 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",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "mistralai/mistral-7b-instruct:free",
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.choices && data.choices[0]) {
+      return data.choices[0].message.content.trim();
+    } else {
+      console.error("OpenRouter response malformed:", data);
+      return null;
+    }
+  } catch (err) {
+    console.error("Failed to contact OpenRouter:", err);
+    return null;
+  }
+}
+
+async function rewriteGoalAsReminder(goal) {
+  const prompt = `
+I want to remind someone about their task in a friendly, natural way. The task is:
+
+"${goal}"
+
+Write a one-sentence friendly question to ask if they've finished it. Do not include typos or awkward phrasing from the task. Make it flow like natural speech. Only return the sentence.
+`;
+
+  try {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer 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",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "mistralai/mistral-7b-instruct:free",  // faster model for quick rewrites
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content?.trim() || null;
+
+  } catch (err) {
+    console.error("Goal rewrite failed:", err);
+    return null;
+  }
+}
+

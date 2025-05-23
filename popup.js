@@ -9,6 +9,37 @@ document.addEventListener('DOMContentLoaded', function() {
   const viewDetailsButton = document.getElementById('viewDetails');
   const timeChart = document.getElementById('timeChart');
 
+  // Check prompt
+    const goalPrompt = document.getElementById('goalPrompt');
+  const goalInput = document.getElementById('goalInput');
+  const saveGoalBtn = document.getElementById('saveGoal');
+
+
+  // Check if task already set
+  chrome.storage.local.get('currentGoal', (result) => {
+    if (result.currentGoal) {
+      goalPrompt.style.display = 'none';
+      mainContent.style.display = 'block';
+    } else {
+      goalPrompt.style.display = 'block';
+      mainContent.style.display = 'none';
+    }
+  });
+
+  // Save task
+  saveGoalBtn.addEventListener('click', () => {
+    const goal = goalInput.value.trim();
+    if (!goal) {
+      alert("Please enter a goal!");
+      return;
+    }
+    chrome.storage.local.set({ currentGoal: goal }, () => {
+      alert("Goal saved!");
+      goalPrompt.style.display = 'none';
+      mainContent.style.display = 'block';
+    });
+  });
+
   // Helper to get today's date string
   function getToday() {
     return new Date().toISOString().split('T')[0];

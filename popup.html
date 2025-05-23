@@ -110,43 +110,52 @@
 </head>
 <body>
   <h1>Productivity Tracker</h1>
+
+  <div id="goalPrompt" style="margin-bottom: 15px;">
+    <h3>What are you working on today?</h3>
+    <textarea id="goalInput" rows="3" style="width: 100%;" placeholder="e.g. Write my essay"></textarea>
+    <button id="saveGoal" style="margin-top: 5px;">Save Goal</button>
+  </div>
   
-  <div class="control-panel">
-    <span>Tracking Status</span>
-    <label class="toggle-switch">
-      <input type="checkbox" id="trackingToggle">
-      <span class="slider"></span>
-    </label>
-  </div>
+  <div id="mainContent" style="display: none;">
+    <div class="control-panel">
+        <span>Tracking Status</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="trackingToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
 
-  <div class="stats-container">
-    <div class="stat-card">
-      <div class="stat-title">Today's Total Time</div>
-      <div class="stat-value" id="totalTime">0h 0m</div>
-    </div>
-    
-    <div class="stat-card">
-      <div class="stat-title">Tab Switches</div>
-      <div class="stat-value" id="tabSwitches">0</div>
-    </div>
-    
-    <div class="stat-card">
-      <div class="stat-title">Active Tabs</div>
-      <div class="stat-value" id="activeTabs">0</div>
-    </div>
-  </div>
+      <div class="stats-container">
+        <div class="stat-card">
+          <div class="stat-title">Today's Total Time</div>
+          <div class="stat-value" id="totalTime">0h 0m</div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-title">Tab Switches</div>
+          <div class="stat-value" id="tabSwitches">0</div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-title">Active Tabs</div>
+          <div class="stat-value" id="activeTabs">0</div>
+        </div>
+      </div>
 
-  <div class="chart-container">
-    <canvas id="timeChart"></canvas>
-  </div>
+      <div class="chart-container">
+        <canvas id="timeChart"></canvas>
+      </div>
 
-  <div class="control-panel">
-    <button id="clearData">Clear Data</button>
-    <button id="viewDetails">View Details</button>
-  </div>
+      <div class="control-panel">
+        <button id="clearData">Clear Data</button>
+        <button id="viewDetails">View Details</button>
+      </div>
 
-  <div class="privacy-notice">
-    All data is stored locally in your browser. No data is sent to any servers.
+      <div class="privacy-notice">
+        All data is stored locally in your browser. No data is sent to any servers.
+      </div>
+
   </div>
 
   <script src="popup.js"></script>
