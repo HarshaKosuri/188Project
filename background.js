@@ -1,4 +1,5 @@
 // Manifest V3 background service worker for Productivity Tracker
+let lastActiveUrl = null;
 
 // Helper to get today's date string
 function getToday() {
@@ -41,14 +42,61 @@ chrome.tabs.onRemoved.addListener(() => {
 });
 
 // Track tab activation (switches)
-chrome.tabs.onActivated.addListener(() => {
-  chrome.storage.local.get(['isTracking', 'tabSwitches'], (result) => {
-    if (result.isTracking !== false) {
-      const newSwitches = (result.tabSwitches || 0) + 1;
-      chrome.storage.local.set({ tabSwitches: newSwitches }, broadcastStats);
+// Add a cooldown timer
+let lastNotificationTime = 0;
+const notificationCooldown = 10000; // in milliseconds (10 seconds)
+
+chrome.tabs.onActivated.addListener((activeInfo) => {
+  console.log("[Tracker] Tab activated");
+
+  // Get the current (new) active tab
+  chrome.tabs.get(activeInfo.tabId, (tab) => {
+    const now = Date.now();
+
+    // Skip if tab has no URL
+    if (!tab || !tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
+      console.log("[Tracker] Ignoring tab with invalid or internal URL");
+      return;
     }
+
+    // Show notification if allowed by cooldown
+    chrome.storage.local.get(['isTracking', 'tabSwitches'], (result) => {
+      console.log("[Tracker] isTracking:", result.isTracking);
+      if (result.isTracking !== false) {
+        const newSwitches = (result.tabSwitches || 0) + 1;
+        chrome.storage.local.set({ tabSwitches: newSwitches }, broadcastStats);
+
+        if (now - lastNotificationTime > notificationCooldown && lastActiveUrl) {
+          lastNotificationTime = now;
+
+          let domain;
+          try {
+            domain = new URL(lastActiveUrl).hostname;
+          } catch (e) {
+            domain = 'your last site';
+          }
+
+          const message = `Did you finish what you were doing on ${domain}?`;
+
+          console.log("[Tracker] Creating notification");
+          chrome.notifications.create({
+            type: 'basic',
+            iconUrl: 'images/confused_bee.png', // Ensure this exists
+            title: 'Beezy',
+            message,
+            priority: 2,
+            requireInteraction: true
+          });
+        }
+
+        // Update last active tab URL after processing
+        lastActiveUrl = tab.url;
+      }
+    });
   });
 });
+
+
 
 // Track time spent per domain (every 10 seconds)
 setInterval(() => {

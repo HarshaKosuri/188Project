@@ -15,7 +15,8 @@
     "storage",
     "tabs",
     "idle",
-    "contextMenus"
+    "contextMenus",
+    "notifications"
   ],
   "host_permissions": [
     "<all_urls>"
