@@ -1,6 +1,8 @@
-# Chrome Productivity Tracker
+# Beezy: Chrome Productivity Tracker
 
 A Chrome extension that helps users track their browser activity, improve mindfulness, and boost productivity.
+![beezy_logo](https://github.com/user-attachments/assets/4991c438-7912-42b6-a5f0-71d55a9939b3)
+
 
 ## Features
 
