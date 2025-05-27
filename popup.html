@@ -1,161 +1,499 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Productivity Tracker</title>
+  <title>Beezy</title>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="lib/chart.umd.min.js"></script>
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
-      width: 400px;
+      width: 320px;
       height: auto;
-      padding: 15px;
-      font-family: Arial, sans-serif;
-    }
-    h1 {
-      font-size: 18px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
       color: #333;
-      margin-bottom: 15px;
     }
-    .control-panel {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-      padding: 10px;
-      background-color: #f5f5f5;
-      border-radius: 4px;
+
+    .container {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 8px;
+      margin: 0;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     }
-    .toggle-switch {
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      padding: 16px;
+      color: white;
       position: relative;
-      display: inline-block;
-      width: 50px;
-      height: 24px;
     }
-    .toggle-switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
+
+    .header-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
-    .slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: #ccc;
-      transition: .4s;
-      border-radius: 24px;
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
-    .slider:before {
-      position: absolute;
-      content: "";
-      height: 16px;
-      width: 16px;
-      left: 4px;
-      bottom: 4px;
-      background-color: white;
-      transition: .4s;
+
+    .bee-icon {
+      width: 20px;
+      height: 20px;
+      animation: bounce 2s infinite;
+    }
+
+    .bee-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    @keyframes bounce {
+      0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-3px); }
+      60% { transform: translateY(-2px); }
+    }
+
+    .brand-text h1 {
+      font-size: 18px;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .brand-text .time {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .tracking-indicator {
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+      animation: pulse 2s infinite;
     }
-    input:checked + .slider {
-      background-color: #4285f4;
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
     }
-    input:checked + .slider:before {
-      transform: translateX(26px);
+
+    /* Toggle Switch */
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
-    .stats-container {
-      margin-top: 15px;
+
+    .toggle {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
     }
-    .stat-card {
-      background-color: #f5f5f5;
+
+    .toggle.active {
+      background: rgba(255, 255, 255, 0.6);
+    }
+
+    .toggle-slider {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 50%;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .toggle.active .toggle-slider {
+      transform: translateX(20px);
+    }
+
+    /* Goal Section */
+    .goal-section {
+      padding: 16px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    .goal-input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e5e7eb;
+      border-radius: 6px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+      resize: none;
+      font-family: inherit;
+    }
+
+    .goal-input:focus {
+      border-color: #f59e0b;
+    }
+
+    .goal-button {
+      width: 100%;
       padding: 10px;
-      margin-bottom: 10px;
-      border-radius: 4px;
-    }
-    .stat-title {
-      font-weight: bold;
-      margin-bottom: 5px;
-    }
-    .stat-value {
-      font-size: 24px;
-      color: #4285f4;
-    }
-    .chart-container {
-      margin-top: 15px;
-      height: 200px;
-    }
-    button {
-      background-color: #4285f4;
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
       color: white;
       border: none;
-      padding: 8px 16px;
-      border-radius: 4px;
+      border-radius: 6px;
+      font-weight: 600;
       cursor: pointer;
+      margin-top: 8px;
+      transition: transform 0.1s;
       font-size: 14px;
     }
-    button:hover {
-      background-color: #3367d6;
+
+    .goal-button:hover {
+      transform: translateY(-1px);
     }
-    .privacy-notice {
-      margin-top: 15px;
-      padding: 10px;
-      background-color: #f8f9fa;
-      border-radius: 4px;
+
+    .goal-button:active {
+      transform: translateY(0);
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      padding: 16px;
+    }
+
+    .stat-card {
+      text-align: center;
+      padding: 12px;
+      border-radius: 8px;
+      background: white;
+      border: 1px solid #f3f4f6;
+    }
+
+    .stat-card.time {
+      background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    }
+
+    .stat-card.switches {
+      background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+    }
+
+    .stat-card.tabs {
+      background: linear-gradient(135deg, #fae8ff 0%, #f3e8ff 100%);
+    }
+
+    .stat-icon {
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .stat-card.time .stat-value { color: #1d4ed8; }
+    .stat-card.switches .stat-value { color: #059669; }
+    .stat-card.tabs .stat-value { color: #7c3aed; }
+
+    .stat-label {
       font-size: 12px;
-      color: #666;
+      font-weight: 500;
+      opacity: 0.8;
+      margin-top: 2px;
     }
+
+    /* Productivity Score */
+    .productivity-section {
+      margin: 0 16px 16px;
+      padding: 16px;
+      background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+      border-radius: 8px;
+    }
+
+    .productivity-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .productivity-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      color: #047857;
+      font-size: 14px;
+    }
+
+    .productivity-badge {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(16, 185, 129, 0.2);
+      color: #047857;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .progress-bar {
+      height: 8px;
+      background: rgba(16, 185, 129, 0.2);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 4px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #10b981, #059669);
+      border-radius: 4px;
+      transition: width 0.5s ease;
+      width: 85%;
+    }
+
+    .productivity-message {
+      font-size: 12px;
+      color: #047857;
+    }
+
+    /* Top Sites */
+    .sites-section {
+      padding: 0 16px 16px;
+    }
+
+    .sites-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      font-weight: 600;
+      color: #374151;
+      font-size: 14px;
+    }
+
+    .site-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .site-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .site-details {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .site-row {
+      display: flex;
+      justify-content: between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .site-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: #374151;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+    }
+
+    .site-time {
+      font-size: 12px;
+      color: #6b7280;
+      margin-left: 8px;
+    }
+
+    .site-progress {
+      height: 4px;
+      background: #f3f4f6;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .site-progress-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+
+    /* Action Buttons */
+    .actions {
+      display: flex;
+      gap: 8px;
+      padding: 16px;
+      border-top: 1px solid #f3f4f6;
+    }
+
+    .action-btn {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid #d1d5db;
+      background: white;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #374151;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .action-btn:hover {
+      background: #f9fafb;
+      border-color: #9ca3af;
+    }
+
+    .action-btn.settings {
+      flex: 0 0 auto;
+      padding: 8px;
+    }
+
+    /* Hidden states */
+    .hidden {
+      display: none !important;
+    }
+
+    /* Color scheme for sites */
+    .color-emerald { background: #10b981; }
+    .color-amber { background: #f59e0b; }
+    .color-blue { background: #3b82f6; }
+    .color-rose { background: #f43f5e; }
+    .color-purple { background: #8b5cf6; }
+    .color-cyan { background: #06b6d4; }
   </style>
 </head>
 <body>
-  <h1>Productivity Tracker</h1>
-
-  <div id="goalPrompt" style="margin-bottom: 15px;">
-    <h3>What are you working on today?</h3>
-    <textarea id="goalInput" rows="3" style="width: 100%;" placeholder="e.g. Write my essay"></textarea>
-    <button id="saveGoal" style="margin-top: 5px;">Save Goal</button>
-  </div>
-  
-  <div id="mainContent" style="display: none;">
-    <div class="control-panel">
-        <span>Tracking Status</span>
-        <label class="toggle-switch">
-          <input type="checkbox" id="trackingToggle">
-          <span class="slider"></span>
-        </label>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-content">
+        <div class="brand">
+          <div class="bee-icon">
+            <img src="images/beezy-logo-48.png" alt="Beezy Logo">
+          </div>
+          <div class="brand-text">
+            <h1>Beezy</h1>
+            <div class="time" id="currentTime"></div>
+          </div>
+        </div>
+        <div class="toggle-container">
+          <div class="tracking-indicator" id="trackingIndicator"></div>
+          <div class="toggle" id="trackingToggle">
+            <div class="toggle-slider"></div>
+          </div>
+        </div>
       </div>
+    </div>
 
-      <div class="stats-container">
-        <div class="stat-card">
-          <div class="stat-title">Today's Total Time</div>
+    <!-- Goal Section -->
+    <div class="goal-section" id="goalSection">
+      <h3 style="font-size: 14px; margin-bottom: 8px; color: #374151;">What are you working on today?</h3>
+      <textarea class="goal-input" id="goalInput" rows="3" placeholder="e.g. Write my essay, Study for exam, Complete project..."></textarea>
+      <button class="goal-button" id="saveGoalBtn">🎯 Save Goal & Start Tracking</button>
+    </div>
+
+    <!-- Main Content -->
+    <div id="mainContent" class="hidden">
+      <!-- Stats Grid -->
+      <div class="stats-grid">
+        <div class="stat-card time">
+          <div class="stat-icon">🕐</div>
           <div class="stat-value" id="totalTime">0h 0m</div>
+          <div class="stat-label">Total Time</div>
         </div>
-        
-        <div class="stat-card">
-          <div class="stat-title">Tab Switches</div>
+        <div class="stat-card switches">
+          <div class="stat-icon">🔄</div>
           <div class="stat-value" id="tabSwitches">0</div>
+          <div class="stat-label">Tab Switches</div>
         </div>
-        
-        <div class="stat-card">
-          <div class="stat-title">Active Tabs</div>
+        <div class="stat-card tabs">
+          <div class="stat-icon">📑</div>
           <div class="stat-value" id="activeTabs">0</div>
+          <div class="stat-label">Active Tabs</div>
         </div>
       </div>
 
-      <div class="chart-container">
-        <canvas id="timeChart"></canvas>
+      <!-- Productivity Score -->
+      <div class="productivity-section">
+        <div class="productivity-header">
+          <div class="productivity-title">
+            <span>📈</span>
+            <span>Productivity Score</span>
+          </div>
+          <div class="productivity-badge">
+            <span>⚡</span>
+            <span id="productivityScore">85%</span>
+          </div>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <p class="productivity-message">Great focus today! Keep it up! 🎯</p>
       </div>
 
-      <div class="control-panel">
-        <button id="clearData">Clear Data</button>
-        <button id="viewDetails">View Details</button>
+      <!-- Top Sites -->
+      <div class="sites-section">
+        <div class="sites-header">
+          <span>📊</span>
+          <span>Top Sites</span>
+        </div>
+        <div id="sitesList">
+          <!-- Sites will be populated dynamically -->
+        </div>
       </div>
 
-      <div class="privacy-notice">
-        All data is stored locally in your browser. No data is sent to any servers.
+      <!-- Action Buttons -->
+      <div class="actions">
+        <button class="action-btn" id="viewDetailsBtn">
+          <span>👁️</span>
+          <span>Details</span>
+        </button>
+        <button class="action-btn" id="clearDataBtn">
+          <span>🗑️</span>
+          <span>Clear</span>
+        </button>
+        <button class="action-btn settings" id="settingsBtn">
+          <span>⚙️</span>
+        </button>
       </div>
-
+    </div>
   </div>
 
   <script src="popup.js"></script>

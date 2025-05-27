@@ -1,14 +1,14 @@
 {
   "manifest_version": 3,
-  "name": "Productivity Tracker",
+  "name": "Beezy",
   "version": "1.0",
-  "description": "Track your browser activity and improve productivity",
+  "description": "🐝 Stay focused and productive with Beezy - your smart productivity companion",
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "images/icon16.png",
-      "48": "images/icon48.png",
-      "128": "images/icon128.png"
+      "16": "images/beezy-logo-16.png",
+      "48": "images/beezy-logo-48.png",
+      "128": "images/beezy-logo-128.png"
     }
   },
   "permissions": [
@@ -28,8 +28,8 @@
     "extension_pages": "script-src 'self'; object-src 'self'"
   },
   "icons": {
-    "16": "images/icon16.png",
-    "48": "images/icon48.png",
-    "128": "images/icon128.png"
+    "16": "images/beezy-logo-16.png",
+    "48": "images/beezy-logo-48.png",
+    "128": "images/beezy-logo-128.png"
   }
 } 

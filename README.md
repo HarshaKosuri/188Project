@@ -1,74 +1,87 @@
-# Beezy: Chrome Productivity Tracker
+# 🐝 Beezy - Smart Productivity Tracker
 
-A Chrome extension that helps users track their browser activity, improve mindfulness, and boost productivity.
-![beezy_logo](https://github.com/user-attachments/assets/4991c438-7912-42b6-a5f0-71d55a9939b3)
-
+A beautiful Chrome extension that helps you stay focused and productive with AI-powered insights.
 
 ## Features
 
-- Track time spent on different websites
-- Monitor tab switching behavior
-- View daily, weekly, and monthly statistics
-- Privacy-focused (all data stored locally)
-- Beautiful and intuitive dashboard
+✨ **Smart Productivity Tracking** - AI determines if sites are on-task or off-task based on your goals
+🎯 **Goal-Setting Workflow** - Set daily goals and get focus reminders  
+📊 **Real-time Analytics** - Track time spent, tab switches, and productivity scores
+🐝 **Beautiful Custom UI** - Modern design with custom bee branding
+⚡ **LLM Integration** - OpenAI-powered focus suggestions and task classification
+🔔 **Smart Notifications** - Gentle reminders to stay on track (60s cooldown)
 
-## Installation
+## Setup Instructions
 
-1. Clone or download this repository
-2. Create icon files (see "Creating Icons" section below)
-3. Open Chrome and navigate to `chrome://extensions/`
-4. Enable "Developer mode" using the toggle in the top-right corner
-5. Click "Load unpacked" and select the directory containing these files
-6. The extension should now appear in your Chrome toolbar
+### 1. Clone the Repository
+```bash
+git clone https://github.com/HarshaKosuri/188Project.git
+cd 188Project
+```
 
-## Creating Icons
+### 2. Configure OpenAI API Key
+1. Get your API key from [OpenAI Platform](https://platform.openai.com/api-keys)
+2. Open `background.js`
+3. Find the line: `const OPENAI_API_KEY = "YOUR_OPENAI_API_KEY_HERE";`
+4. Replace `YOUR_OPENAI_API_KEY_HERE` with your actual API key
 
-The extension requires three icon sizes:
-- 16x16 pixels (icon16.png)
-- 48x48 pixels (icon48.png)
-- 128x128 pixels (icon128.png)
+### 3. Install Chrome Extension
+1. Open Chrome and go to `chrome://extensions/`
+2. Enable "Developer mode" (top right toggle)
+3. Click "Load unpacked"
+4. Select the project folder
+5. Beezy should now appear in your Chrome toolbar! 🐝
 
-You can create these icons using any image editor (like Photoshop, GIMP, or online tools). Here's a simple design suggestion:
+## How to Use
 
-1. Create a square canvas with a light blue background (#4285f4)
-2. Add a simple clock or productivity icon in white
-3. Save the image in three different sizes
-4. Place them in the `images` directory with the following names:
-   - `images/icon16.png`
-   - `images/icon48.png`
-   - `images/icon128.png`
+1. **Set Your Goal**: Click the Beezy icon and enter what you're working on
+2. **Start Tracking**: Toggle tracking on to monitor your productivity
+3. **Stay Focused**: Beezy will analyze your browsing and give you insights
+4. **Check Progress**: View your productivity score and time breakdowns
+5. **Get Reminders**: Receive gentle focus nudges when needed
 
 ## File Structure
 
-- `manifest.json` - Extension configuration
-- `popup.html` - Main popup interface
-- `popup.js` - Popup functionality
-- `background.js` - Background tracking
-- `details.html` - Detailed statistics page
-- `details.js` - Details page functionality
-- `images/` - Directory for extension icons
+```
+├── manifest.json          # Extension configuration
+├── popup.html             # Main popup interface
+├── popup.js              # Popup functionality
+├── background.js         # Background tracking & AI logic
+├── details.html          # Detailed analytics page
+├── details.js            # Details page functionality  
+├── content.js            # Content script (placeholder)
+└── images/              # Custom bee logos and icons
+    ├── beezy-logo-16.png   # 16x16 icon
+    ├── beezy-logo-48.png   # 48x48 icon
+    └── beezy-logo-128.png  # 128x128 icon
+```
 
-## Usage
+## Technologies Used
 
-1. Click the extension icon to open the popup
-2. Toggle tracking on/off using the switch
-3. View your daily statistics in the popup
-4. Click "View Details" for more comprehensive statistics
-5. Use the time period selector to view different time ranges
-
-## Privacy
-
-All data is stored locally in your browser. No data is sent to any servers or third parties.
+- **Vanilla JavaScript** - Core functionality
+- **Chrome Extensions API** - Browser integration
+- **OpenAI GPT-3.5** - AI-powered task classification
+- **HTML/CSS** - Modern UI with gradients & animations
+- **Chrome Storage API** - Data persistence
 
 ## Development
 
-To modify the extension:
-1. Make changes to the relevant files
-2. Reload the extension in Chrome (click the refresh icon in chrome://extensions/)
-3. Test your changes
+The extension uses:
+- 10-second intervals for time tracking
+- 60-second cooldowns for LLM API calls to prevent rate limiting
+- Local storage for caching LLM responses
+- Real-time productivity scoring based on on-task vs off-task time
 
-## Resources
+## Privacy
 
-- [Chrome Extension Documentation](https://developer.chrome.com/docs/extensions/)
-- [Manifest V3 Overview](https://developer.chrome.com/docs/extensions/mv3/intro/)
-- [Chart.js Documentation](https://www.chartjs.org/docs/latest/) 
+- All data stored locally in Chrome storage
+- OpenAI API calls only include goal and URL domain
+- No personal data transmitted or stored externally
+
+## Contributing
+
+Feel free to submit issues and pull requests! This is a class project but open for improvements.
+
+---
+
+Made with 🐝 and lots of ☕ for Stanford CS 188
