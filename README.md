@@ -19,8 +19,8 @@ git clone https://github.com/HarshaKosuri/188Project.git
 cd 188Project
 ```
 
-### 2. Configure OpenAI API Key
-1. Get your API key from [OpenAI Platform](https://platform.openai.com/api-keys)
+### 2. Configure DeepSeekAI API Key
+1. Get your API key from [OpenRouterAI](https://openrouter.ai/settings/keys)
 2. Open `background.js`
 3. Find the line: `const OPENAI_API_KEY = "YOUR_OPENAI_API_KEY_HERE";`
 4. Replace `YOUR_OPENAI_API_KEY_HERE` with your actual API key
@@ -53,7 +53,11 @@ cd 188Project
 └── images/              # Custom bee logos and icons
     ├── beezy-logo-16.png   # 16x16 icon
     ├── beezy-logo-48.png   # 48x48 icon
-    └── beezy-logo-128.png  # 128x128 icon
+    ├── beezy-logo-128.png  # 128x128 icon
+    ├── happy_bee.png       # on-task notif icon
+    ├── angry_bee.png       # off-task notif icon
+    ├── confused_bee.png    # tab switch to off-task notif icon
+    └── logo.png            # bee logo transparent background
 ```
 
 ## Technologies Used

@@ -131,6 +131,12 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
   });
 });
 
+let currentDomain = null;
+let onTaskDuration = 0;   // seconds spent on current on-task domain
+let offTaskDuration = 0;  // seconds spent on current off-task domain
+let streakOnTask = null;
+let streakDuration = 0;
+
 // Track time spent per domain (every 10 seconds)
 setInterval(async () => {
   console.log("[Tracker] Interval triggered.");
@@ -150,6 +156,7 @@ setInterval(async () => {
     console.log("[Tracker] No active tab or URL found.");
     return;
   }
+
 
   // Prevent tracking for chrome:// and chrome-extension:// URLs
   if (tabs[0].url.startsWith('chrome://') || tabs[0].url.startsWith('chrome-extension://')) {
@@ -211,7 +218,32 @@ setInterval(async () => {
   }
 
   console.log("[Tracker] Updating domain:", domain, "General time:", dailyStats[today][domain], "On-task:", isOnTask);
+  // update streak stats
+  if (isOnTask === streakOnTask){   // update streak
+    streakDuration += 10;
+  } else{ // switch and reset streak
+    streakOnTask = isOnTask;
+    streakDuration = 0;
+  }
 
+  // send notifs based on stats
+  if (streakOnTask === true && streakDuration >= 3000){   // send happy notif every 3000 sec
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'images/happy_bee.png',
+        title: 'Good Work!',
+        message: 'Nice work staying on task and focused! Keep the momentum going!',
+        priority: 2
+      });
+  } else if (streakOnTask == false && streakDuration >= 1200) {   // send angry notif every 1200 sec
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'images/angry_bee.png',
+        title: 'Stay Focused!',
+        message: 'Buzz buzz! You\'ve drifted off task, refocus?',
+        priority: 2
+      });
+  }
   // Save all stats
   chrome.storage.local.set({ 
     dailyStats, 
@@ -264,20 +296,20 @@ chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
 // LLM Prompt to Check if on Task
 async function checkIfOnTask(goal, newUrl) {
   const prompt = `
-    I'm trying to stay focused and productive.
+I'm trying to stay focused and productive.
 
-    My current task is: "${goal}"
-    I just opened this URL: "${newUrl}"
+My current task is: "${goal}"
+I just opened this URL: "${newUrl}"
 
-    Would a reasonable person consider this site helpful for working on that task? Reply only with "yes" or "no".
-    `;
+Would a reasonable person consider this site helpful for working on that task? Deduct the from the URL if it relates to current tasks. I reccomend categorizing work into something like academic, entertainment, gaming, reading, etc. For example, if working on something academic, deduct if website is academic and/or related to specific task.
 
-  // TODO: Add your OpenAI API key here
-  // Get your API key from: https://platform.openai.com/api-keys
-  const OPENAI_API_KEY = "YOUR_OPENAI_API_KEY_HERE";
-  
-  if (OPENAI_API_KEY === "YOUR_OPENAI_API_KEY_HERE") {
-    console.warn("OpenAI API key not configured. Please add your key to background.js");
+Reply only with "yes" or "no".
+`;
+
+  const OPENAI_API_KEY = "ENTER_OPENAI_API_KEY";
+
+  if (!OPENAI_API_KEY || OPENAI_API_KEY === "ENTER_OPENAI_API_KEY") {
+    console.warn("OpenAI API key not configured.");
     return null;
   }
 
@@ -314,15 +346,16 @@ I want to remind someone about their task in a friendly, natural way. The task i
 
 "${goal}"
 
-Write a one-sentence friendly question to ask if they've finished it. Do not include typos or awkward phrasing from the task. Make it flow like natural speech. Only return the sentence.
+Write a one-sentence friendly question to ask if they've finished it. 
+Do not include typos or awkward phrasing from the task. Can reword to make it flow like natural speech.
+
+Please only return the exact one sentence to be displayed in the notification. Don't give me various options, just provide the message only, nothing else.
 `;
 
-  // TODO: Add your OpenAI API key here
-  // Get your API key from: https://platform.openai.com/api-keys
-  const OPENAI_API_KEY = "YOUR_OPENAI_API_KEY_HERE";
-  
-  if (OPENAI_API_KEY === "YOUR_OPENAI_API_KEY_HERE") {
-    console.warn("OpenAI API key not configured. Please add your key to background.js");
+  const OPENAI_API_KEY = "ENTER_OPENAI_API_KEY";
+
+  if (!OPENAI_API_KEY || OPENAI_API_KEY === "ENTER_OPENAI_API_KEY") {
+    console.warn("OpenAI API key not configured.");
     return null;
   }
 
@@ -347,4 +380,3 @@ Write a one-sentence friendly question to ask if they've finished it. Do not inc
     return null;
   }
 }
-
