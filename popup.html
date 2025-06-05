@@ -4,6 +4,7 @@
   <title>Beezy</title>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="lib/chart.js"></script>
   <style>
     * {
       margin: 0;
@@ -280,7 +281,7 @@
       color: #047857;
     }
 
-    /* Top Sites */
+    /* Sites Section */
     .sites-section {
       padding: 0 16px 16px;
     }
@@ -295,16 +296,72 @@
       font-size: 14px;
     }
 
+    .pie-chart-container {
+      background: linear-gradient(135deg, #f9fafb, #f3f4f6);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+      height: 200px;
+      position: relative;
+      transition: all 0.3s ease;
+    }
+
+    .pie-chart-container:hover {
+      background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .sites-list {
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .category-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px;
+      border-bottom: 1px solid #f3f4f6;
+      background: #f9fafb;
+    }
+
+    .category-icon {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-size: 12px;
+    }
+
+    .category-title {
+      font-weight: 600;
+      font-size: 14px;
+      color: #374151;
+    }
+
+    .sites-container {
+      padding: 8px;
+    }
+
     .site-item {
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-bottom: 8px;
+      padding: 8px;
+      transition: background-color 0.2s;
+    }
+
+    .site-item:hover {
+      background: #f9fafb;
     }
 
     .site-color {
-      width: 12px;
-      height: 12px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
       flex-shrink: 0;
     }
@@ -316,19 +373,18 @@
 
     .site-row {
       display: flex;
-      justify-content: between;
+      justify-content: space-between;
       align-items: center;
       margin-bottom: 4px;
     }
 
     .site-name {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 500;
       color: #374151;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      flex: 1;
     }
 
     .site-time {
@@ -397,6 +453,103 @@
     .color-rose { background: #f43f5e; }
     .color-purple { background: #8b5cf6; }
     .color-cyan { background: #06b6d4; }
+
+    /* Add these styles after the existing ones */
+    .breakdown-modal {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+    }
+
+    .breakdown-content {
+      background: white;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 400px;
+      max-height: 400px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+      position: relative;
+    }
+
+    .breakdown-header {
+      padding: 16px;
+      border-bottom: 1px solid #f3f4f6;
+      position: relative;
+    }
+
+    .breakdown-header h2 {
+      margin: 0;
+      font-size: 18px;
+      color: #111827;
+      font-weight: 600;
+    }
+
+    .breakdown-summary {
+      margin-top: 4px;
+      font-size: 14px;
+      color: #6b7280;
+    }
+
+    .close-button {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: none;
+      background: #f3f4f6;
+      color: #6b7280;
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .close-button:hover {
+      background: #e5e7eb;
+      color: #374151;
+    }
+
+    .breakdown-sites {
+      padding: 16px;
+      overflow-y: auto;
+      max-height: calc(90vh - 100px);
+    }
+
+    .breakdown-site-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 8px;
+      transition: background-color 0.2s;
+    }
+
+    .breakdown-site-item:hover {
+      background: #f9fafb;
+    }
+
+    .breakdown-site-item .site-details {
+      flex: 1;
+    }
+
+    .breakdown-site-item .site-percentage {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
   </style>
 </head>
 <body>
@@ -472,10 +625,13 @@
       <div class="sites-section">
         <div class="sites-header">
           <span>📊</span>
-          <span>Top Sites</span>
+          <span>Productivity Breakdown</span>
         </div>
-        <div id="sitesList">
-          <!-- Sites will be populated dynamically -->
+        <div class="pie-chart-container">
+          <canvas id="sitesPieChart"></canvas>
+        </div>
+        <div class="sites-list" id="sitesList">
+          <!-- Hover instruction will be added here -->
         </div>
       </div>
 

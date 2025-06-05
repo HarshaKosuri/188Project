@@ -24,6 +24,167 @@ document.addEventListener('DOMContentLoaded', function() {
     'color-rose', 'color-purple', 'color-cyan'
   ];
 
+  // List of productive sites
+  const productiveSites = [
+    'github.com',
+    'docs.google.com',
+    'stackoverflow.com',
+    'vercel.com',
+    'notion.so',
+    'linear.app',
+    'figma.com',
+    'leetcode.com',
+    'developer.mozilla.org'
+  ];
+
+  // Color scheme for pie chart
+  const pieColors = {
+    productive: '#4CAF50',  // Green
+    unproductive: '#F44336' // Red
+  };
+
+  // Initialize pie chart
+  let sitesPieChart = null;
+  let activeCategory = null;
+
+  function initializePieChart() {
+    const canvas = document.getElementById('sitesPieChart');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    
+    sitesPieChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Productive', 'Unproductive'],
+        datasets: [{
+          data: [0, 0],
+          backgroundColor: [pieColors.productive, pieColors.unproductive],
+          borderWidth: 0,
+          borderRadius: 3,
+          spacing: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '60%',
+        onClick: function(event, elements) {
+          if (elements.length > 0) {
+            const index = elements[0].index;
+            const category = this.data.labels[index];
+            showDetailedBreakdown(category);
+          }
+        },
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            enabled: true,
+            position: 'nearest',
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            padding: 12,
+            titleFont: {
+              size: 14,
+              weight: 'bold'
+            },
+            bodyFont: {
+              size: 13
+            },
+            callbacks: {
+              title: function(context) {
+                return context[0].label;
+              },
+              label: function(context) {
+                const value = context.raw;
+                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                return `${formatTime(value)} (${percentage}%)`;
+              }
+            }
+          }
+        },
+        onHover: function(event, elements) {
+          const chartArea = this.chartArea;
+          if (!chartArea) return;
+          
+          // Only trigger if mouse is within chart area
+          if (event.x >= chartArea.left && 
+              event.x <= chartArea.right && 
+              event.y >= chartArea.top && 
+              event.y <= chartArea.bottom) {
+            
+            if (elements.length > 0) {
+              const index = elements[0].index;
+              const category = this.data.labels[index];
+              if (activeCategory !== category) {
+                activeCategory = category;
+                updateSitesListForCategory(category);
+              }
+            } else if (activeCategory !== null) {
+              activeCategory = null;
+              showHoverInstruction();
+            }
+          }
+        },
+        hover: {
+          mode: 'nearest',
+          intersect: true
+        }
+      }
+    });
+  }
+
+  // Store current sites data
+  let currentSitesData = [];
+
+  // Helper function to get sites for a category
+  function getSitesForCategory(category, sitesData) {
+    return sitesData.filter(site => {
+      const isProductive = productiveSites.includes(site.site);
+      return category.toLowerCase() === (isProductive ? 'productive' : 'unproductive');
+    }).sort((a, b) => b.time - a.time);
+  }
+
+  function showHoverInstruction() {
+    sitesList.innerHTML = '<div style="text-align: center; color: #9ca3af; font-size: 12px; padding: 10px;">Hover over chart sections to see website details</div>';
+  }
+
+  function updateSitesListForCategory(category) {
+    const sites = getSitesForCategory(category, currentSitesData);
+    const totalTime = sites.reduce((sum, site) => sum + site.time, 0);
+    
+    sitesList.innerHTML = `
+      <div class="category-header">
+        <span class="category-icon">${category === 'Productive' ? '✓' : '×'}</span>
+        <span class="category-title">${category} Sites</span>
+      </div>
+      <div class="sites-container">
+        ${sites.map((site, index) => {
+          const percentage = Math.round((site.time / totalTime) * 100);
+          const colorSet = category.toLowerCase() === 'productive' ? siteColors.productive : siteColors.unproductive;
+          const color = colorSet[index % colorSet.length];
+          
+          return `
+            <div class="site-item">
+              <div class="site-color" style="background-color: ${color}"></div>
+              <div class="site-details">
+                <div class="site-row">
+                  <div class="site-name">${site.site}</div>
+                  <div class="site-time">${formatTime(site.time)}</div>
+                </div>
+                <div class="site-progress">
+                  <div class="site-progress-fill" style="background-color: ${color}; width: ${percentage}%"></div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
   // Update current time every second
   function updateCurrentTime() {
     const now = new Date();
@@ -83,6 +244,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Load main content data
   function loadMainContent() {
+    // Initialize pie chart if not already done
+    if (!sitesPieChart) {
+      initializePieChart();
+    }
+    
     chrome.storage.local.get(['isTracking', 'dailyStats', 'onTaskStats', 'offTaskStats', 'tabSwitches', 'activeTabs'], function(result) {
       // Set tracking toggle state
       const isTracking = result.isTracking !== false;
@@ -91,7 +257,7 @@ document.addEventListener('DOMContentLoaded', function() {
       // Update stats
       updateStats(result);
       
-      // Update sites list
+      // Update sites list and pie chart
       const today = getToday();
       updateSitesList(result.dailyStats && result.dailyStats[today] ? result.dailyStats[today] : {});
     });
@@ -172,40 +338,40 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Update sites list
   function updateSitesList(dailyStats) {
-    sitesList.innerHTML = '';
-    
     if (!dailyStats || Object.keys(dailyStats).length === 0) {
       sitesList.innerHTML = '<div style="text-align: center; color: #9ca3af; font-size: 12px; padding: 20px;">No sites tracked yet today</div>';
+      
+      if (sitesPieChart) {
+        sitesPieChart.data.datasets[0].data = [0, 0];
+        sitesPieChart.update();
+      }
       return;
     }
 
-    // Sort sites by time spent
-    const sortedSites = Object.entries(dailyStats)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 4); // Show top 4 sites
+    // Convert stats to array of site objects
+    currentSitesData = Object.entries(dailyStats).map(([site, time]) => ({
+      site,
+      time,
+      isProductive: productiveSites.includes(site)
+    }));
 
-    const totalTime = Object.values(dailyStats).reduce((sum, time) => sum + time, 0);
+    // Calculate totals
+    const productiveTime = currentSitesData
+      .filter(site => site.isProductive)
+      .reduce((sum, site) => sum + site.time, 0);
+    
+    const unproductiveTime = currentSitesData
+      .filter(site => !site.isProductive)
+      .reduce((sum, site) => sum + site.time, 0);
 
-    sortedSites.forEach(([site, time], index) => {
-      const percentage = totalTime > 0 ? Math.round((time / totalTime) * 100) : 0;
-      const colorClass = siteColors[index % siteColors.length];
+    // Update pie chart
+    if (sitesPieChart) {
+      sitesPieChart.data.datasets[0].data = [productiveTime, unproductiveTime];
+      sitesPieChart.update();
+    }
 
-      const siteItem = document.createElement('div');
-      siteItem.className = 'site-item';
-      siteItem.innerHTML = `
-        <div class="site-color ${colorClass}"></div>
-        <div class="site-details">
-          <div class="site-row">
-            <div class="site-name">${site}</div>
-            <div class="site-time">${formatTime(time)}</div>
-          </div>
-          <div class="site-progress">
-            <div class="site-progress-fill ${colorClass}" style="width: ${percentage}%"></div>
-          </div>
-        </div>
-      `;
-      sitesList.appendChild(siteItem);
-    });
+    // Show hover instruction initially
+    showHoverInstruction();
   }
 
   // Handle clear data button
@@ -251,4 +417,74 @@ document.addEventListener('DOMContentLoaded', function() {
       updateSitesList(message.data.dailyStats && message.data.dailyStats[today] ? message.data.dailyStats[today] : {});
     }
   });
+
+  function showDetailedBreakdown(category) {
+    // Remove any existing modal
+    const existingModal = document.querySelector('.breakdown-modal');
+    if (existingModal) {
+      existingModal.remove();
+    }
+
+    const sites = getSitesForCategory(category, currentSitesData);
+    const totalTime = sites.reduce((sum, site) => sum + site.time, 0);
+    const totalAllTime = currentSitesData.reduce((sum, site) => sum + site.time, 0);
+    const categoryPercentage = Math.round((totalTime / totalAllTime) * 100);
+    
+    const modal = document.createElement('div');
+    modal.className = 'breakdown-modal';
+    
+    // Create the modal content
+    modal.innerHTML = `
+      <div class="breakdown-content">
+        <div class="breakdown-header">
+          <h2>${category} Sites Breakdown</h2>
+          <div class="breakdown-summary">
+            Total Time: ${formatTime(totalTime)} (${categoryPercentage}% of all activity)
+          </div>
+          <button class="close-button" type="button">×</button>
+        </div>
+        <div class="breakdown-sites">
+          ${sites.map((site, index) => {
+            const percentage = Math.round((site.time / totalTime) * 100);
+            const colorSet = category.toLowerCase() === 'productive' ? siteColors.productive : siteColors.unproductive;
+            const color = colorSet[index % colorSet.length];
+            
+            return `
+              <div class="breakdown-site-item">
+                <div class="site-color" style="background-color: ${color}"></div>
+                <div class="site-details">
+                  <div class="site-row">
+                    <div class="site-name">${site.site}</div>
+                    <div class="site-time">${formatTime(site.time)}</div>
+                  </div>
+                  <div class="site-progress">
+                    <div class="site-progress-fill" style="background-color: ${color}; width: ${percentage}%"></div>
+                  </div>
+                  <div class="site-percentage">${percentage}% of ${category.toLowerCase()} time</div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+
+    // Add the modal to the container element
+    const container = document.querySelector('.container') || document.body;
+    container.appendChild(modal);
+
+    // Add click handler to close button
+    const closeButton = modal.querySelector('.close-button');
+    closeButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      container.removeChild(modal);
+    });
+
+    // Close modal when clicking outside content
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        container.removeChild(modal);
+      }
+    });
+  }
 }); 
