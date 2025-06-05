@@ -372,6 +372,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Show hover instruction initially
     showHoverInstruction();
+    renderFullSiteBreakdown(dailyStats);
   }
 
   // Handle clear data button
@@ -397,6 +398,50 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }
   });
+
+  // render the breakdown of sites visited
+  function renderFullSiteBreakdown(sitesData) {
+  const sitesListDropdown = document.getElementById('sitesListDropdown');
+  if (!sitesData || Object.keys(sitesData).length === 0) {
+    sitesListDropdown.innerHTML = '<div style="text-align: center; color: #9ca3af; font-size: 12px; padding: 10px;">No data yet</div>';
+    return;
+  }
+
+  const totalTime = Object.values(sitesData).reduce((sum, time) => sum + time, 0);
+
+  const siteEntries = Object.entries(sitesData)
+    .sort(([, a], [, b]) => b - a)
+    .map(([site, time]) => {
+      const percentage = Math.round((time / totalTime) * 100);
+      const isProductive = productiveSites.includes(site);
+      const color = isProductive ? '#10b981' : '#f43f5e';
+
+      return `
+        <div class="site-item">
+          <div class="site-details" style="width: 100%;">
+            <div class="site-row">
+              <div class="site-name">${site}</div>
+              <div class="site-time">${formatTime(time)}</div>
+            </div>
+            <div class="site-progress">
+              <div class="site-progress-fill" style="background-color: ${color}; width: ${percentage}%;"></div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+  sitesListDropdown.innerHTML = `
+    <div class="category-header">
+      <span class="category-icon">🗂️</span>
+      <span class="category-title">Site Breakdown</span>
+    </div>
+    <div class="sites-container">
+      ${siteEntries}
+    </div>
+  `;
+}
+
 
   // Handle view details button
   viewDetailsBtn.addEventListener('click', function() {
