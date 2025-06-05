@@ -24,19 +24,6 @@ document.addEventListener('DOMContentLoaded', function() {
     'color-rose', 'color-purple', 'color-cyan'
   ];
 
-  // List of productive sites
-  const productiveSites = [
-    'github.com',
-    'docs.google.com',
-    'stackoverflow.com',
-    'vercel.com',
-    'notion.so',
-    'linear.app',
-    'figma.com',
-    'leetcode.com',
-    'developer.mozilla.org'
-  ];
-
   // Color scheme for pie chart
   const pieColors = {
     productive: '#4CAF50',  // Green
@@ -349,11 +336,33 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Convert stats to array of site objects
-    currentSitesData = Object.entries(dailyStats).map(([site, time]) => ({
-      site,
-      time,
-      isProductive: productiveSites.includes(site)
-    }));
+    const today = getToday();
+    chrome.storage.local.get(['onTaskStats', 'offTaskStats'], ({ onTaskStats, offTaskStats }) => {
+      const onTask = onTaskStats?.[today] || {};
+      const offTask = offTaskStats?.[today] || {};
+
+      productiveSites = Object.keys(onTask);  // Add this line
+
+      currentSitesData = Object.entries(dailyStats).map(([site, time]) => ({
+        site,
+        time,
+        isProductive: productiveSites.includes(site) // Use list for consistency
+      }));
+
+
+      // Now recalculate pie chart sections correctly:
+      const productiveTime = Object.entries(onTask).reduce((sum, [, time]) => sum + time, 0);
+      const unproductiveTime = Object.entries(offTask).reduce((sum, [, time]) => sum + time, 0);
+
+      if (sitesPieChart) {
+        sitesPieChart.data.datasets[0].data = [productiveTime, unproductiveTime];
+        sitesPieChart.update();
+      }
+
+      showHoverInstruction();
+      renderFullSiteBreakdown(dailyStats);
+    });
+
 
     // Calculate totals
     const productiveTime = currentSitesData
