@@ -19,8 +19,8 @@ git clone https://github.com/HarshaKosuri/188Project.git
 cd 188Project
 ```
 
-### 2. Configure DeepSeekAI API Key
-1. Get your API key from [OpenRouterAI](https://openrouter.ai/settings/keys)
+### 2. Configure OpenAI API Key
+1. Get your API key from [OpenAI Platform](https://platform.openai.com/api-keys)
 2. Open `background.js`
 3. Find the line: `const OPENAI_API_KEY = "YOUR_OPENAI_API_KEY_HERE";`
 4. Replace `YOUR_OPENAI_API_KEY_HERE` with your actual API key
