@@ -157,8 +157,6 @@ setInterval(async () => {
     return;
   }
 
-
-  // Prevent tracking for chrome:// and chrome-extension:// URLs
   if (tabs[0].url.startsWith('chrome://') || tabs[0].url.startsWith('chrome-extension://')) {
     console.log("[Tracker] Ignoring internal URL:", tabs[0].url);
     return;
@@ -174,6 +172,7 @@ setInterval(async () => {
     return;
   }
 
+  const pathname = url.pathname.split('?')[0];
   const domain = url.hostname;
   const today = getToday();
   const goal = result.currentGoal;
@@ -183,7 +182,6 @@ setInterval(async () => {
   if (!dailyStats[today]) dailyStats[today] = {};
   dailyStats[today][domain] = (dailyStats[today][domain] || 0) + 10;
 
-  // Initialize task-specific stats
   const onTaskStats = result.onTaskStats || {};
   const offTaskStats = result.offTaskStats || {};
   const domainClassifications = result.domainClassifications || {};
@@ -191,23 +189,25 @@ setInterval(async () => {
   if (!onTaskStats[today]) onTaskStats[today] = {};
   if (!offTaskStats[today]) offTaskStats[today] = {};
 
-  // Check if we need to classify this domain
+  // Special handling for YouTube
   let isOnTask = null;
-  const cacheKey = `${goal}:${domain}`;
-  
+  const isYouTube = domain.includes("youtube.com");
+  const cacheKey = isYouTube 
+    ? `${goal}:${domain}${pathname}` 
+    : `${goal}:${domain}`;
+
   if (goal && domainClassifications[cacheKey] !== undefined) {
-    // Use cached classification
+    // Use cached result
     isOnTask = domainClassifications[cacheKey];
-    console.log("[Tracker] Using cached classification for", domain, ":", isOnTask);
+    console.log("[Tracker] Using cached classification for", cacheKey, ":", isOnTask);
   } else if (goal) {
-    // Classify domain using LLM
-    console.log("[Tracker] Classifying domain:", domain);
+    console.log("[Tracker] Classifying with LLM:", tabs[0].url);
     const response = await checkIfOnTask(goal, tabs[0].url);
     isOnTask = response && response.toLowerCase().includes("yes");
-    
-    // Cache the result
+
+    // Cache YouTube with full path, others with just domain
     domainClassifications[cacheKey] = isOnTask;
-    console.log("[Tracker] Classified", domain, "as", isOnTask ? "on-task" : "off-task");
+    console.log("[Tracker] Classified", cacheKey, "as", isOnTask ? "on-task" : "off-task");
   }
 
   // Update task-specific stats
@@ -218,33 +218,32 @@ setInterval(async () => {
   }
 
   console.log("[Tracker] Updating domain:", domain, "General time:", dailyStats[today][domain], "On-task:", isOnTask);
-  // update streak stats
-  if (isOnTask === streakOnTask){   // update streak
+
+  if (isOnTask === streakOnTask) {
     streakDuration += 10;
-  } else{ // switch and reset streak
+  } else {
     streakOnTask = isOnTask;
     streakDuration = 0;
   }
 
-  // send notifs based on stats
-  if (streakOnTask === true && streakDuration >= 3000){   // send happy notif every 3000 sec
-      chrome.notifications.create({
-        type: 'basic',
-        iconUrl: 'images/happy_bee.png',
-        title: 'Good Work!',
-        message: 'Nice work staying on task and focused! Keep the momentum going!',
-        priority: 2
-      });
-  } else if (streakOnTask == false && streakDuration >= 1200) {   // send angry notif every 1200 sec
-      chrome.notifications.create({
-        type: 'basic',
-        iconUrl: 'images/angry_bee.png',
-        title: 'Stay Focused!',
-        message: 'Buzz buzz! You\'ve drifted off task, refocus?',
-        priority: 2
-      });
+  if (streakOnTask === true && streakDuration >= 3000) {
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: 'images/happy_bee.png',
+      title: 'Good Work!',
+      message: 'Nice work staying on task and focused! Keep the momentum going!',
+      priority: 2
+    });
+  } else if (streakOnTask == false && streakDuration >= 1200) {
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: 'images/angry_bee.png',
+      title: 'Stay Focused!',
+      message: 'Buzz buzz! You\'ve drifted off task, refocus?',
+      priority: 2
+    });
   }
-  // Save all stats
+
   chrome.storage.local.set({ 
     dailyStats, 
     onTaskStats, 
@@ -270,7 +269,6 @@ function broadcastStats() {
       }
     }).catch(error => {
       // Optional: Log a less intrusive message or do nothing
-      // console.log("Popup not open to receive stats update.");
     });
   });
 }
@@ -283,12 +281,10 @@ chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
   console.log("Background script received message:", message);
   
   if (message.action === "feature2") {
-    // Process feature2 action in the background
     setTimeout(() => {
       sendResponse({message: "Feature 2 processed by background script!"});
     }, 300);
     
-    // Return true to indicate we will send a response asynchronously
     return true;
   }
 }); 
