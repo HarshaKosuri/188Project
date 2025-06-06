@@ -56,17 +56,12 @@ chrome.tabs.onRemoved.addListener(() => {
 // Track tab activation (switches)
 // Add a cooldown timer
 let lastNotificationTime = 0;
-const notificationCooldown = 60000; // in milliseconds (60 seconds - increased from 10 seconds)
+const notificationCooldown = 60000;
 let lastActiveUrl = null;
 
 chrome.tabs.onActivated.addListener((activeInfo) => {
-  console.log("[Tab Switch] Listener triggered. ActiveInfo:", activeInfo);
-
   chrome.tabs.get(activeInfo.tabId, (tab) => {
-    console.log("[Tab Switch] Tab info:", tab);
-
     if (!tab || !tab.url || tab.url.startsWith("chrome://") || tab.url.startsWith("chrome-extension://")) {
-      console.log("[Tab Switch] Skipping internal or missing tab.");
       return;
     }
 
@@ -77,26 +72,19 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
       const isTracking = result.isTracking !== false;
       const goal = result.currentGoal;
 
-      console.log("[Tab Switch] isTracking:", isTracking, "goal:", goal, "lastActiveUrl:", lastActiveUrl);
-
       if (!isTracking) return;
 
-      // Update tab switch count
       const newSwitches = (result.tabSwitches || 0) + 1;
       chrome.storage.local.set({ tabSwitches: newSwitches }, broadcastStats);
 
-      // Update active tab count too
       updateActiveTabs();
 
-      // Skip LLM if not enough time has passed or no goal set
       if (!goal || now - lastNotificationTime < notificationCooldown || !lastActiveUrl) {
-        console.log("[Tab Switch] Skipping LLM check. Reason:", !goal ? "No goal" : now - lastNotificationTime < notificationCooldown ? "Cooldown" : "No lastActiveUrl");
         lastActiveUrl = newUrl;
         return;
       }
 
       const response = await checkIfOnTask(goal, newUrl);
-      console.log("[LLM Response]", response);
 
       if (response && response.toLowerCase().includes("no")) {
         lastNotificationTime = now;
@@ -108,8 +96,6 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
           ? `${reminder} ${domain} might be a distraction.`
           : `Stay focused — ${domain} might not be on track.`;
 
-        console.log("[Notification] Attempting to create notification. Message:", message);
-
         chrome.notifications.create({
           type: 'basic',
           iconUrl: "images/confused_bee.png",
@@ -117,12 +103,6 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
           message: message,
           priority: 2,
           requireInteraction: true
-        }, function(notificationId) {
-          if (chrome.runtime.lastError) {
-            console.error("[Notification] Error creating notification:", chrome.runtime.lastError.message);
-          } else {
-            console.log("[Notification] Successfully created. ID:", notificationId);
-          }
         });
       }
 
@@ -132,52 +112,38 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
 });
 
 let currentDomain = null;
-let onTaskDuration = 0;   // seconds spent on current on-task domain
-let offTaskDuration = 0;  // seconds spent on current off-task domain
+let onTaskDuration = 0;
+let offTaskDuration = 0;
 let streakOnTask = null;
 let streakDuration = 0;
 
-// Track time spent per domain (every 10 seconds)
 setInterval(async () => {
-  console.log("[Tracker] Interval triggered.");
-  
   const result = await new Promise((resolve) => {
     chrome.storage.local.get(['isTracking', 'dailyStats', 'onTaskStats', 'offTaskStats', 'domainClassifications', 'currentGoal'], resolve);
   });
-  
-  console.log("[Tracker] isTracking:", result.isTracking);
+
   if (result.isTracking === false) return;
 
   const tabs = await new Promise((resolve) => {
     chrome.tabs.query({active: true, lastFocusedWindow: true}, resolve);
   });
 
-  if (!tabs[0] || !tabs[0].url) {
-    console.log("[Tracker] No active tab or URL found.");
+  if (!tabs[0] || !tabs[0].url || tabs[0].url.startsWith('chrome://') || tabs[0].url.startsWith('chrome-extension://')) {
     return;
   }
-
-  if (tabs[0].url.startsWith('chrome://') || tabs[0].url.startsWith('chrome-extension://')) {
-    console.log("[Tracker] Ignoring internal URL:", tabs[0].url);
-    return;
-  }
-
-  console.log("[Tracker] Active tab URL:", tabs[0].url);
 
   let url;
   try {
     url = new URL(tabs[0].url);
   } catch (e) {
-    console.error("[Tracker] Invalid URL:", tabs[0].url, e);
     return;
   }
 
-  const pathname = url.pathname.split('?')[0];
   const domain = url.hostname;
+  const fullUrl = url.href;
   const today = getToday();
   const goal = result.currentGoal;
 
-  // Update general daily stats
   const dailyStats = result.dailyStats || {};
   if (!dailyStats[today]) dailyStats[today] = {};
   dailyStats[today][domain] = (dailyStats[today][domain] || 0) + 10;
@@ -185,39 +151,31 @@ setInterval(async () => {
   const onTaskStats = result.onTaskStats || {};
   const offTaskStats = result.offTaskStats || {};
   const domainClassifications = result.domainClassifications || {};
-  
   if (!onTaskStats[today]) onTaskStats[today] = {};
   if (!offTaskStats[today]) offTaskStats[today] = {};
 
-  // Special handling for YouTube
-  let isOnTask = null;
-  const isYouTube = domain.includes("youtube.com");
-  const cacheKey = isYouTube 
-    ? `${goal}:${domain}${pathname}` 
-    : `${goal}:${domain}`;
-
-  if (goal && domainClassifications[cacheKey] !== undefined) {
-    // Use cached result
-    isOnTask = domainClassifications[cacheKey];
-    console.log("[Tracker] Using cached classification for", cacheKey, ":", isOnTask);
-  } else if (goal) {
-    console.log("[Tracker] Classifying with LLM:", tabs[0].url);
-    const response = await checkIfOnTask(goal, tabs[0].url);
-    isOnTask = response && response.toLowerCase().includes("yes");
-
-    // Cache YouTube with full path, others with just domain
-    domainClassifications[cacheKey] = isOnTask;
-    console.log("[Tracker] Classified", cacheKey, "as", isOnTask ? "on-task" : "off-task");
+  let cacheKey;
+  if (domain.includes("youtube.com")) {
+    cacheKey = `${goal}:${fullUrl}`;
+  } else {
+    const pathname = url.pathname.split('?')[0];
+    cacheKey = `${goal}:${domain}${pathname}`;
   }
 
-  // Update task-specific stats
+  let isOnTask = null;
+  if (goal && domainClassifications[cacheKey] !== undefined) {
+    isOnTask = domainClassifications[cacheKey];
+  } else if (goal) {
+    const response = await checkIfOnTask(goal, tabs[0].url);
+    isOnTask = response && response.toLowerCase().includes("yes");
+    domainClassifications[cacheKey] = isOnTask;
+  }
+
   if (isOnTask === true) {
     onTaskStats[today][domain] = (onTaskStats[today][domain] || 0) + 10;
   } else if (isOnTask === false) {
     offTaskStats[today][domain] = (offTaskStats[today][domain] || 0) + 10;
   }
-
-  console.log("[Tracker] Updating domain:", domain, "General time:", dailyStats[today][domain], "On-task:", isOnTask);
 
   if (isOnTask === streakOnTask) {
     streakDuration += 10;
@@ -249,47 +207,29 @@ setInterval(async () => {
     onTaskStats, 
     offTaskStats, 
     domainClassifications 
-  }, () => {
-    console.log("[Tracker] All stats saved to storage.");
-    broadcastStats();
-  });
+  }, broadcastStats);
 }, 10000);
 
-// Broadcast stats to popup
 function broadcastStats() {
   chrome.storage.local.get(['dailyStats', 'onTaskStats', 'offTaskStats', 'tabSwitches', 'activeTabs'], (result) => {
     chrome.runtime.sendMessage({
       action: 'updateStats',
-      data: {
-        dailyStats: result.dailyStats,
-        onTaskStats: result.onTaskStats,
-        offTaskStats: result.offTaskStats,
-        tabSwitches: result.tabSwitches,
-        activeTabs: result.activeTabs
-      }
-    }).catch(error => {
-      // Optional: Log a less intrusive message or do nothing
-    });
+      data: result
+    }).catch(() => {});
   });
 }
 
-// On extension startup, update active tabs
 updateActiveTabs();
 
-// Listen for messages from popup or content scripts
 chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
-  console.log("Background script received message:", message);
-  
   if (message.action === "feature2") {
     setTimeout(() => {
       sendResponse({message: "Feature 2 processed by background script!"});
     }, 300);
-    
     return true;
   }
-}); 
+});
 
-// LLM Prompt to Check if on Task
 async function checkIfOnTask(goal, newUrl) {
   const prompt = `
 You are helping someone stay focused on their goal.
@@ -319,10 +259,7 @@ Reply only with **"yes"** or **"no"**.
 
   const OPENAI_API_KEY = "ENTER_OPENAI_API_KEY";
 
-  if (!OPENAI_API_KEY || OPENAI_API_KEY === "ENTER_OPENAI_API_KEY") {
-    console.warn("OpenAI API key not configured.");
-    return null;
-  }
+  if (!OPENAI_API_KEY || OPENAI_API_KEY === "ENTER_OPENAI_API_KEY") return null;
 
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -336,17 +273,9 @@ Reply only with **"yes"** or **"no"**.
         messages: [{ role: "user", content: prompt }]
       })
     });
-
     const data = await response.json();
-
-    if (data.choices && data.choices[0]) {
-      return data.choices[0].message.content.trim();
-    } else {
-      console.error("OpenAI response malformed:", data);
-      return null;
-    }
+    return data.choices?.[0]?.message?.content?.trim() || null;
   } catch (err) {
-    console.error("Failed to contact OpenAI:", err);
     return null;
   }
 }
@@ -365,11 +294,7 @@ Return just the one sentence only.
 `;
 
   const OPENAI_API_KEY = "ENTER_OPENAI_API_KEY";
-
-  if (!OPENAI_API_KEY || OPENAI_API_KEY === "ENTER_OPENAI_API_KEY") {
-    console.warn("OpenAI API key not configured.");
-    return null;
-  }
+  if (!OPENAI_API_KEY || OPENAI_API_KEY === "ENTER_OPENAI_API_KEY") return null;
 
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -383,12 +308,9 @@ Return just the one sentence only.
         messages: [{ role: "user", content: prompt }]
       })
     });
-
     const data = await response.json();
     return data.choices?.[0]?.message?.content?.trim() || null;
-
   } catch (err) {
-    console.error("Goal rewrite failed:", err);
     return null;
   }
 }
