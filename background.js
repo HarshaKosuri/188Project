@@ -296,21 +296,29 @@ chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
 // LLM Prompt to Check if on Task
 async function checkIfOnTask(goal, newUrl) {
   const prompt = `
-I am trying to stay focused and avoid distractions.
+You are helping someone stay focused on their goal.
 
-My current task is: "${goal}"
-I just switched to this URL: "${newUrl}"
+Current goal: "${goal}"  
+Recently visited site: "${newUrl}"
 
-Classify the site based on whether it helps with the current task. Assume the goal involves focus, productivity, and minimal distraction. 
+Would a reasonable person consider this site helpful for staying focused on that goal? Judge based on the site’s purpose and how likely it is to support productive work on that goal. Assume the person wants to avoid distractions like entertainment or unrelated content.
 
-Your job is to say whether this site:
-- Directly supports the task
-- Is indirectly helpful (e.g., inspiration, research)
-- Is a likely distraction (e.g., entertainment, unrelated browsing)
+**Important guidelines:**
+- If the goal is academic (e.g., writing a paper, doing homework, studying), then:
+  - Educational platforms (e.g., Canvas, BruinLearn, Blackboard, Coursera, edX, university portals) are "yes".
+  - Social media, news, or general browsing sites are usually "no".
 
-Reply with one of:
-- "yes" if the site directly or indirectly helps with the task
-- "no" if the site likely distracts or breaks focus
+**Examples:**
+- Goal: "Finish my history essay"
+  - Site: bruinlearn.com — **yes** (course platform)
+  - Site: youtube.com — **no** (unless for research)
+  - Site: reddit.com — **no**
+
+- Goal: "Apply for jobs"
+  - Site: linkedin.com — **yes**
+  - Site: netflix.com — **no**
+
+Reply only with **"yes"** or **"no"**.
 `;
 
   const OPENAI_API_KEY = "ENTER_OPENAI_API_KEY";
