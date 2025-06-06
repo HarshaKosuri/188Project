@@ -296,14 +296,21 @@ chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
 // LLM Prompt to Check if on Task
 async function checkIfOnTask(goal, newUrl) {
   const prompt = `
-I'm trying to stay focused and productive.
+I am trying to stay focused and avoid distractions.
 
 My current task is: "${goal}"
-I just opened this URL: "${newUrl}"
+I just switched to this URL: "${newUrl}"
 
-Would a reasonable person consider this site helpful for working on that task? Deduct the from the URL if it relates to current tasks. I reccomend categorizing work into something like academic, entertainment, gaming, reading, etc. For example, if working on something academic, deduct if website is academic and/or related to specific task.
+Classify the site based on whether it helps with the current task. Assume the goal involves focus, productivity, and minimal distraction. 
 
-Reply only with "yes" or "no".
+Your job is to say whether this site:
+- Directly supports the task
+- Is indirectly helpful (e.g., inspiration, research)
+- Is a likely distraction (e.g., entertainment, unrelated browsing)
+
+Reply with one of:
+- "yes" if the site directly or indirectly helps with the task
+- "no" if the site likely distracts or breaks focus
 `;
 
   const OPENAI_API_KEY = "ENTER_OPENAI_API_KEY";
@@ -342,14 +349,15 @@ Reply only with "yes" or "no".
 
 async function rewriteGoalAsReminder(goal) {
   const prompt = `
-I want to remind someone about their task in a friendly, natural way. The task is:
+You are a friendly and supportive coach helping someone stay focused.
 
-"${goal}"
+Their goal is: "${goal}"
 
-Write a one-sentence friendly question to ask if they've finished it. 
-Do not include typos or awkward phrasing from the task. Can reword to make it flow like natural speech.
+Write one powerful but friendly sentence to remind them of the goal. Make it sound like a gentle check-in, not a command. Use motivational psychology (e.g., autonomy, purpose, momentum).
 
-Please only return the exact one sentence to be displayed in the notification. Don't give me various options, just provide the message only, nothing else.
+Make it sound like something you'd hear from a mindful productivity app. Avoid awkward phrasing, just a single smooth sentence to help them realign.
+
+Return just the one sentence only.
 `;
 
   const OPENAI_API_KEY = "ENTER_OPENAI_API_KEY";
