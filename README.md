@@ -20,7 +20,7 @@ cd 188Project
 ```
 
 ### 2. Configure OpenAI API Key
-1. Get your API key from [OpenAI Platform](https://platform.openai.com/api-keys)
+1. Get your API key from [OpenAI Platform](https://platform.openai.com/api-keys) May need to load some credits in your OpenAI account before using the API model.
 2. Open `background.js`
 3. Find the line: `const OPENAI_API_KEY = "YOUR_OPENAI_API_KEY_HERE";`
 4. Replace `YOUR_OPENAI_API_KEY_HERE` with your actual API key
@@ -30,7 +30,8 @@ cd 188Project
 2. Enable "Developer mode" (top right toggle)
 3. Click "Load unpacked"
 4. Select the project folder
-5. Beezy should now appear in your Chrome toolbar! 🐝
+5. Click the extension icon (puzzle-piece) and pin the Beezy extension
+6. Beezy should now appear in your Chrome toolbar! 🐝
 
 ## How to Use
 
@@ -39,6 +40,10 @@ cd 188Project
 3. **Stay Focused**: Beezy will analyze your browsing and give you insights
 4. **Check Progress**: View your productivity score and time breakdowns
 5. **Get Reminders**: Receive gentle focus nudges when needed
+
+## Final Showcase Poster
+[PDF Version Here](https://github.com/user-attachments/files/20663905/Final.Version.2.pdf)
+![Final Showcase Poster](https://github.com/user-attachments/assets/f2f23000-5fb6-4da2-b0bd-b4ea839d0a87)
 
 ## File Structure
 
@@ -88,4 +93,4 @@ Feel free to submit issues and pull requests! This is a class project but open f
 
 ---
 
-Made with 🐝 and lots of ☕ for Stanford CS 188
+Made with 🐝 and lots of ☕ for UCLA CS 188
